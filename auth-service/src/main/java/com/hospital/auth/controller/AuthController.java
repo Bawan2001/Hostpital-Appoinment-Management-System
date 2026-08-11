@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.hospital.auth.dto.OAuthTokenRequest;
+import com.hospital.auth.exception.UnauthorizedException;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -66,5 +68,27 @@ public class AuthController {
     public ResponseEntity<Boolean> validateToken(@RequestParam String token) {
         Boolean isValid = authService.validateToken(token);
         return ResponseEntity.ok(isValid);
+    }
+
+    @PostMapping("/oauth/token")
+    @Operation(summary = "OAuth 2.0 Token Endpoint (ROPC Grant)",
+            description = "Issues an OAuth 2.0 access token using the Resource Owner Password Credentials (ROPC) grant type. " +
+                    "Accepts grant_type='password', username (email), and password fields per RFC 6749 Section 4.3.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Access token issued successfully",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Unsupported grant_type"),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
+    public ResponseEntity<AuthResponse> oauthToken(@RequestBody OAuthTokenRequest request) {
+        if (!"password".equals(request.getGrantType())) {
+            throw new UnauthorizedException("Unsupported grant_type. Only 'password' grant is supported.");
+        }
+        LoginRequest loginRequest = LoginRequest.builder()
+                .email(request.getUsername())
+                .password(request.getPassword())
+                .build();
+        AuthResponse response = authService.login(loginRequest);
+        return ResponseEntity.ok(response);
     }
 }

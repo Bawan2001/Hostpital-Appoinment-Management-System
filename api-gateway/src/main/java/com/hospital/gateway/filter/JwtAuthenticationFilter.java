@@ -35,6 +35,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
             "/api/v1/auth/validate",
+            "/api/v1/auth/oauth",
             "/v3/api-docs",
             "/swagger-ui",
             "/actuator"
@@ -87,6 +88,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublicEndpoint(String path) {
+        if (path.contains("/v3/api-docs") || path.contains("/swagger-ui")) {
+            return true;
+        }
         return PUBLIC_ENDPOINTS.stream().anyMatch(path::startsWith);
     }
 

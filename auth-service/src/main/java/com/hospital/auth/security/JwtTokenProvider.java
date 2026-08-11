@@ -62,6 +62,14 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Returns the configured token expiration duration in seconds.
+     * Used for the OAuth 2.0 'expires_in' response field (RFC 6749 Section 5.1).
+     */
+    public long getExpirationSeconds() {
+        return jwtExpirationMs / 1000;
+    }
+
     private SecretKey key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }

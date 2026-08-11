@@ -29,22 +29,6 @@ spring:
           uri: lb://auth-service
           predicates:
             - Path=/api/v1/auth/**
-        - id: patient-service
-          uri: lb://patient-service
-          predicates:
-            - Path=/api/v1/patients/**
-        - id: doctor-service
-          uri: lb://doctor-service
-          predicates:
-            - Path=/api/v1/doctors/**
-        - id: appointment-service
-          uri: lb://appointment-service
-          predicates:
-            - Path=/api/v1/appointments/**
-        - id: notification-service
-          uri: lb://notification-service
-          predicates:
-            - Path=/api/v1/notifications/**
 
 eureka:
   client:

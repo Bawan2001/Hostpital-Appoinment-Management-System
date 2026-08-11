@@ -4,10 +4,6 @@ COPY pom.xml .
 COPY eureka-server/pom.xml eureka-server/
 COPY api-gateway/pom.xml api-gateway/
 COPY auth-service/pom.xml auth-service/
-COPY patient-service/pom.xml patient-service/
-COPY doctor-service/pom.xml doctor-service/
-COPY appointment-service/pom.xml appointment-service/
-COPY notification-service/pom.xml notification-service/
 
 COPY api-gateway api-gateway
 RUN mvn clean package -pl api-gateway -am -DskipTests

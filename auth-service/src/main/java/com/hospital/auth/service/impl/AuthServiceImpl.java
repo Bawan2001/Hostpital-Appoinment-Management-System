@@ -29,11 +29,13 @@ public class AuthServiceImpl implements AuthService {
             throw new EmailAlreadyExistsException("Email is already registered: " + request.getEmail());
         }
 
+        String phone = (request.getPhone() != null && !request.getPhone().isBlank()) ? request.getPhone() : "+94771234567";
+
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
+                .phone(phone)
                 .role(request.getRole())
                 .status("ACTIVE")
                 .build();
@@ -44,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
+                .expiresIn(jwtTokenProvider.getExpirationSeconds())
                 .id(savedUser.getId())
                 .name(savedUser.getName())
                 .email(savedUser.getEmail())
@@ -69,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
+                .expiresIn(jwtTokenProvider.getExpirationSeconds())
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())

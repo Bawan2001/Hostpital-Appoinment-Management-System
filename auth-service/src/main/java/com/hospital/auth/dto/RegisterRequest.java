@@ -28,8 +28,8 @@ public class RegisterRequest {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
-    @NotBlank(message = "Phone number is required")
-    private String phone;
+    @Builder.Default
+    private String phone = "+94771234567";
 
     @NotNull(message = "Role is required (ADMIN, DOCTOR, or PATIENT)")
     private Role role;

@@ -64,11 +64,13 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
+        String detailedMsg = errors.isEmpty() ? "Validation failed for input arguments" : String.join("; ", errors.values());
+
         ErrorDetails errorDetails = ErrorDetails.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                .message("Validation failed for input arguments")
+                .message(detailedMsg)
                 .path(request.getRequestURI())
                 .validationErrors(errors)
                 .build();

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student 1 - Gateway Lead & User/Auth Service Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo-container">
+            <span class="logo-icon">🛡️</span>
+            <div>
+                <h2>API Gateway & User/Auth Service</h2>
+                <small style="color: rgba(255,255,255,0.7); font-size: 0.8rem;">Student 1 (Gateway Lead)</small>
+            </div>
+        </div>
+        <div class="auth-status" id="authStatus">
+            <span class="status-badge disconnected" id="connectionBadge">Disconnected</span>
+            <span id="userInfo">Not logged in</span>
+            <button class="btn btn-outline" id="loginBtnModal" onclick="openModal('loginModal')">Login</button>
+            <button class="btn btn-primary" id="registerBtnModal" onclick="openModal('registerModal')">Register</button>
+            <button class="btn btn-danger hidden" id="logoutBtn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('authTab')">🔐 Auth Endpoints</button>
+            <button class="tab-btn" onclick="switchTab('oauthTab')">🔑 OAuth 2.0 Flow</button>
+            <button class="tab-btn" onclick="switchTab('rateLimitTab')">⚡ Rate Limiter & Security</button>
+            <button class="tab-btn" onclick="switchTab('gatewayTab')">🌐 Gateway & Service Discovery</button>
+        </nav>
+
+        <!-- Auth Tab -->
+        <section id="authTab" class="tab-content active">
+            <div class="card">
+                <h3>Authentication & User Management Endpoints</h3>
+                <p>Register new users, authenticate via Gateway, validate JWT signatures, and retrieve user profile details.</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Active JWT Bearer Token:</label>
+                        <textarea id="tokenDisplay" readonly placeholder="No active token. Please login or register below."></textarea>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="openModal('loginModal')">POST /auth/login</button>
+                    <button class="btn btn-secondary" onclick="openModal('registerModal')">POST /auth/register</button>
+                    <button class="btn btn-outline" onclick="validateToken()">GET /auth/validate</button>
+                    <button class="btn btn-outline" onclick="getUserProfile()">GET /auth/user/{id}</button>
+                </div>
+                <div id="authResult" class="data-table-container"></div>
+            </div>
+        </section>
+
+        <!-- OAuth 2.0 Tab -->
+        <section id="oauthTab" class="tab-content">
+            <div class="card">
+                <h3>OAuth 2.0 Resource Owner Password Credentials (ROPC) Grant</h3>
+                <p>RFC 6749 Section 4.3 Endpoint (<code>POST /api/v1/auth/oauth/token</code>)</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Grant Type:</label>
+                        <input type="text" id="oauthGrantType" value="password" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Username (Email):</label>
+                        <input type="email" id="oauthUsername" placeholder="user@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="oauthPassword" placeholder="Enter password">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="requestOAuthToken()">Request Access Token</button>
+                </div>
+                <div id="oauthResult" class="data-table-container"></div>
+            </div>
+        </section>
+
+        <!-- Rate Limiter Tab -->
+        <section id="rateLimitTab" class="tab-content">
+            <div class="card">
+                <h3>Spring Cloud Gateway Rate Limiter & JWT Security Filter</h3>
+                <p>Test in-memory Bucket4j rate limiting (Max 10 requests / minute) and Gateway header validation.</p>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="testRateLimit()">Fire Burst Request (Test Limit)</button>
+                    <button class="btn btn-danger" onclick="spamRateLimit()">Spam 12 Requests (Trigger 429 Too Many Requests)</button>
+                </div>
+                <div id="rateLimitLog" class="data-table-container"></div>
+            </div>
+        </section>
+
+        <!-- Gateway & Discovery Tab -->
+        <section id="gatewayTab" class="tab-content">
+            <div class="card">
+                <h3>API Gateway & Service Discovery Topology</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Central API Gateway URL:</label>
+                        <input type="text" value="http://localhost:8080" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Eureka Server Console:</label>
+                        <input type="text" value="http://localhost:8761" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Auth Service Port:</label>
+                        <input type="text" value="http://localhost:8081" readonly>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-outline" onclick="checkGatewayHealth()">Ping Gateway Health</button>
+                    <a href="http://localhost:8080/swagger-ui.html" target="_blank" class="btn btn-secondary">Open Aggregated Swagger UI</a>
+                </div>
+                <div id="gatewayHealth" class="data-table-container"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">&times;</span>
+            <h3>User Login (/auth/login)</h3>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="loginEmail" value="admin@hospital.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="loginPassword" value="admin123">
+            </div>
+            <button class="btn btn-primary full-width" onclick="login()">Authenticate</button>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('registerModal')">&times;</span>
+            <h3>Register User Account (/auth/register)</h3>
+            <div class="form-group">
+                <label>Full Name:</label>
+                <input type="text" id="regName" placeholder="Dr. John Smith">
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="regEmail" placeholder="john.smith@hospital.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="regPassword" value="password123">
+            </div>
+            <div class="form-group">
+                <label>Phone Number:</label>
+                <input type="text" id="regPhone" value="+94771234567">
+            </div>
+            <div class="form-group">
+                <label>Role:</label>
+                <select id="regRole">
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="DOCTOR">DOCTOR</option>
+                    <option value="PATIENT" selected>PATIENT</option>
+                </select>
+            </div>
+            <button class="btn btn-primary full-width" onclick="register()">Create User</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
