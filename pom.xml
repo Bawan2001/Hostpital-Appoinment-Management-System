@@ -24,6 +24,7 @@
         <module>eureka-server</module>
         <module>api-gateway</module>
         <module>auth-service</module>
+        <module>doctor-service</module>
     </modules>
 
     <properties>
