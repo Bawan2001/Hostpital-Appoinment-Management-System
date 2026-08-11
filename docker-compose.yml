@@ -72,6 +72,28 @@ services:
     networks:
       - hospital-network
 
+  # Doctor Service
+  doctor-service:
+    build:
+      context: .
+      dockerfile: doctor-service/Dockerfile
+    container_name: hospital-doctor-service
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=doctor_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+
   # Gateway & Auth Testing SPA Client
   client-app:
     build:
