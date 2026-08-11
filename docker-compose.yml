@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # Databases
+  mongodb:
+    image: mongo:latest
+    container_name: hospital-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: auth_db
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: hospital-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: hospital_db
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Service Discovery
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: hospital-eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8761"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Microservices
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: hospital-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=auth_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  patient-service:
+    build:
+      context: .
+      dockerfile: patient-service/Dockerfile
+    container_name: hospital-patient-service
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hospital_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgrespassword
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  doctor-service:
+    build:
+      context: .
+      dockerfile: doctor-service/Dockerfile
+    container_name: hospital-doctor-service
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hospital_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  appointment-service:
+    build:
+      context: .
+      dockerfile: appointment-service/Dockerfile
+    container_name: hospital-appointment-service
+    ports:
+      - "8084:8084"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hospital_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: hospital-notification-service
+    ports:
+      - "8085:8085"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  # Central API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: hospital-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - hospital-network
+
+networks:
+  hospital-network:
+    driver: bridge
