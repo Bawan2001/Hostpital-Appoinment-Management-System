@@ -28,11 +28,3 @@ Every request must include the internal API key header when calling directly or 
 mvn clean spring-boot:run
 ```
 Swagger UI: `http://localhost:8084/swagger-ui.html`
-
-## 📤 How to Push to GitHub
-```bash
-git checkout -b feature/appointment-service
-git add .
-git commit -m "feat(appointment): implement Appointment Service with MongoDB"
-git push -u origin feature/appointment-service
-```
