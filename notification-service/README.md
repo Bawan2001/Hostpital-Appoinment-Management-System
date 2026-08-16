@@ -28,10 +28,4 @@ mvn clean spring-boot:run
 ```
 Swagger UI: `http://localhost:8085/swagger-ui.html`
 
-## 📤 How to Push to GitHub
-```bash
-git checkout -b feature/notification-service
-git add .
-git commit -m "feat(notification): implement Notification Service for email and SMS alerts"
-git push -u origin feature/notification-service
-```
+ 
