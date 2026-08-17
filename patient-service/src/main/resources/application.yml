@@ -20,4 +20,5 @@ springdoc:
     path: /swagger-ui.html
 
 app:
-  api-key: hospital-internal-secret-key-2026
+  api-key: ${INTERNAL_API_KEY:hospital-internal-secret-key-2026}
+

@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
-  # Databases
+  # MongoDB Database Server
   mongodb:
     image: mongo:latest
     container_name: hospital-mongodb
     ports:
-      - "27017:27017"
+      - "27019:27017"
     environment:
       MONGO_INITDB_DATABASE: auth_db
     networks:
@@ -17,11 +15,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # Service Discovery
+  # Netflix Eureka Service Discovery Server
   eureka-server:
     build:
-      context: .
-      dockerfile: eureka-server/Dockerfile
+      context: ./eureka-server
+      dockerfile: Dockerfile
     container_name: hospital-eureka-server
     ports:
       - "8761:8761"
@@ -33,11 +31,11 @@ services:
       timeout: 10s
       retries: 5
 
-  # Microservices
+  # Microservice 1: User & Auth Service (Student 1: D.M.B. Rukmal Dissanayaka)
   auth-service:
     build:
-      context: .
-      dockerfile: auth-service/Dockerfile
+      context: ./auth-service
+      dockerfile: Dockerfile
     container_name: hospital-auth-service
     ports:
       - "8081:8081"
@@ -46,6 +44,99 @@ services:
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
       - DB_NAME=auth_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
+      - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  # Microservice 2: Patient Service (Student 2: H.M. Imashi Dilshani)
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    container_name: hospital-patient-service
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=patient_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  # Microservice 3: Doctor Service (Student 3: J.W.A. Indumini Adarshya)
+  doctor-service:
+    build:
+      context: ./doctor-service
+      dockerfile: Dockerfile
+    container_name: hospital-doctor-service
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=doctor_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hospital-network
+
+  # Microservice 4: Appointment Service (Student 4: G. Rashmi Dulashani)
+  appointment-service:
+    build:
+      context: ./appointment-service
+      dockerfile: Dockerfile
+    container_name: hospital-appointment-service
+    ports:
+      - "8084:8084"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=appointment_db
+      - NOTIFICATION_HOST=notification-service
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
+    networks:
+      - hospital-network
+
+  # Microservice 5: Notification Service (Student 5: T.H. Imalsha Dilshani)
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: hospital-notification-service
+    ports:
+      - "8085:8085"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - DB_NAME=notification_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -57,44 +148,32 @@ services:
   # Central API Gateway
   api-gateway:
     build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
+      context: ./api-gateway
+      dockerfile: Dockerfile
     container_name: hospital-api-gateway
     ports:
       - "8080:8080"
     environment:
       - EUREKA_HOST=eureka-server
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
+      - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     depends_on:
       eureka-server:
         condition: service_healthy
       auth-service:
         condition: service_started
+      patient-service:
+        condition: service_started
+      doctor-service:
+        condition: service_started
+      appointment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
     networks:
       - hospital-network
 
-  # Doctor Service
-  doctor-service:
-    build:
-      context: .
-      dockerfile: doctor-service/Dockerfile
-    container_name: hospital-doctor-service
-    ports:
-      - "8083:8083"
-    environment:
-      - EUREKA_HOST=eureka-server
-      - MONGO_HOST=mongodb
-      - MONGO_PORT=27017
-      - DB_NAME=doctor_db
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    networks:
-      - hospital-network
-
-
-  # Gateway & Auth Testing SPA Client
+  # Unified Single Page Application (Web Frontend)
   client-app:
     build:
       context: ./client-app

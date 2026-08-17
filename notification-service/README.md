@@ -9,8 +9,8 @@ Email & SMS Notification Microservice for the Hospital Appointment Management Sy
 - **Gateway Route Prefix**: `/api/v1/notifications/**`
 
 ## 🔑 Security & API Key
-Every request must include the internal API key header when calling directly or routed via Gateway:
-- Header: `X-API-KEY: hospital-internal-secret-key-2026`
+Every direct request must include the internal API key header when calling directly or routed via Gateway:
+- Header: `X-API-KEY: <INTERNAL_API_KEY>` (Configured via environment / .env)
 
 ## 📌 Endpoints
 - `POST /api/v1/notifications/email` — Send email alert

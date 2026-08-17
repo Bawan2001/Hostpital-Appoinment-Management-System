@@ -12,8 +12,8 @@ The **Authentication Service** is responsible for user registration, authenticat
 - Springdoc OpenAPI (Swagger UI)
 
 ## 🔑 Security & Headers
-Every request to endpoints in this service must pass the API Key filter:
-- **Header**: `X-API-KEY: hospital-internal-secret-key-2026`
+Every direct request to endpoints in this service must pass the API Key filter:
+- **Header**: `X-API-KEY: <INTERNAL_API_KEY>` (Configured via environment / .env)
 
 ## 🚀 Key Endpoints & Examples
 

@@ -3,9 +3,11 @@ package com.hospital.doctor.service.impl;
 import com.hospital.doctor.dto.DoctorRequest;
 import com.hospital.doctor.dto.DoctorResponse;
 import com.hospital.doctor.entity.Doctor;
+import com.hospital.doctor.exception.ResourceNotFoundException;
 import com.hospital.doctor.repository.DoctorRepository;
 import com.hospital.doctor.service.DoctorService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorServiceImpl implements DoctorService {
 
     private final DoctorRepository doctorRepository;
@@ -32,13 +35,14 @@ public class DoctorServiceImpl implements DoctorService {
                 .build();
 
         Doctor savedDoctor = doctorRepository.save(doctor);
+        log.info("Created doctor profile with id: {}", savedDoctor.getId());
         return mapToDoctorResponse(savedDoctor);
     }
 
     @Override
     public DoctorResponse getDoctorById(String id) {
         Doctor doctor = doctorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Doctor not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id: " + id));
         return mapToDoctorResponse(doctor);
     }
 
@@ -59,9 +63,10 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public DoctorResponse updateAvailability(String id, Boolean isAvailable) {
         Doctor doctor = doctorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Doctor not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id: " + id));
         doctor.setIsAvailable(isAvailable);
         Doctor updatedDoctor = doctorRepository.save(doctor);
+        log.info("Updated doctor {} availability to {}", id, isAvailable);
         return mapToDoctorResponse(updatedDoctor);
     }
 

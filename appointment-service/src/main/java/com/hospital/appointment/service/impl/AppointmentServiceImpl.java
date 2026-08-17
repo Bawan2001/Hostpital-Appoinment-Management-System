@@ -9,7 +9,9 @@ import com.hospital.appointment.exception.InvalidAppointmentStateException;
 import com.hospital.appointment.exception.ResourceNotFoundException;
 import com.hospital.appointment.repository.AppointmentRepository;
 import com.hospital.appointment.service.AppointmentService;
+import com.hospital.appointment.service.NotificationClientService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,9 +21,11 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final NotificationClientService notificationClientService;
 
     @Override
     public AppointmentResponse bookAppointment(AppointmentRequest request) {
@@ -40,6 +44,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
 
         Appointment saved = appointmentRepository.save(appointment);
+        log.info("Appointment booked with ID: {}", saved.getId());
+
+        // Auto-trigger notification
+        notificationClientService.sendAppointmentConfirmationNotification(saved);
+
         return mapToResponse(saved);
     }
 
@@ -90,6 +99,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setStatus(request.getStatus());
         appointment.setUpdatedAt(LocalDateTime.now());
         Appointment updated = appointmentRepository.save(appointment);
+
+        if (request.getStatus() == AppointmentStatus.CANCELLED) {
+            notificationClientService.sendAppointmentCancellationNotification(updated);
+        }
+
         return mapToResponse(updated);
     }
 
@@ -105,6 +119,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setUpdatedAt(LocalDateTime.now());
         Appointment updated = appointmentRepository.save(appointment);
+
+        notificationClientService.sendAppointmentCancellationNotification(updated);
+
         return mapToResponse(updated);
     }
 

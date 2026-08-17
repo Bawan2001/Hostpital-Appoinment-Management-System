@@ -15,9 +15,10 @@ eureka:
 
 springdoc:
   api-docs:
-    path: /v3/api-docs
+    path: /api/v1/doctors/v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
 
 app:
-  api-key: hospital-internal-secret-key-2026
+  api-key: ${INTERNAL_API_KEY:hospital-internal-secret-key-2026}
+
