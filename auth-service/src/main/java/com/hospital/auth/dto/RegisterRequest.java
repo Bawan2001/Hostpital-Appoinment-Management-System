@@ -33,4 +33,17 @@ public class RegisterRequest {
 
     @NotNull(message = "Role is required (ADMIN, DOCTOR, or PATIENT)")
     private Role role;
+
+    // Optional Patient fields
+    private Integer age;
+    private String gender;
+    private String bloodGroup;
+    private String address;
+
+    // Optional Doctor fields
+    private String specialty;
+    private Integer experienceYears;
+    private Double consultationFee;
+    private String hospitalName;
+    private java.util.List<String> availableDays;
 }

@@ -24,4 +24,6 @@ app:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 Hours
   api-key: ${INTERNAL_API_KEY:hospital-internal-secret-key-2026}
+  patient-service-url: ${PATIENT_SERVICE_URL:http://patient-service:8082}
+  doctor-service-url: ${DOCTOR_SERVICE_URL:http://doctor-service:8083}
 

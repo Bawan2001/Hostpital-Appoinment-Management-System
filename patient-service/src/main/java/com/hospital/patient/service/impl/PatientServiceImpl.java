@@ -60,6 +60,13 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    public PatientResponse getPatientByEmail(String email) {
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with email: " + email));
+        return mapToResponse(patient);
+    }
+
+    @Override
     public List<PatientResponse> getAllPatients() {
         return patientRepository.findAll().stream()
                 .map(this::mapToResponse)

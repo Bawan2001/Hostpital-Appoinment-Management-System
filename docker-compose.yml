@@ -46,6 +46,8 @@ services:
       - DB_NAME=auth_db
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-hospital-internal-secret-key-2026}
       - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      - PATIENT_SERVICE_URL=http://patient-service:8082
+      - DOCTOR_SERVICE_URL=http://doctor-service:8083
     depends_on:
       mongodb:
         condition: service_healthy

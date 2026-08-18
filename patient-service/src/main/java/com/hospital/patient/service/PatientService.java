@@ -10,6 +10,7 @@ public interface PatientService {
     PatientResponse createPatient(PatientRequest request);
     PatientResponse getPatientById(String id);
     PatientResponse getPatientByUserId(String userId);
+    PatientResponse getPatientByEmail(String email);
     List<PatientResponse> getAllPatients();
     PatientResponse updatePatient(String id, PatientRequest request);
     void deletePatient(String id);

@@ -24,3 +24,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Local Docs (Do not push)
+POSTMAN_GUIDE.md

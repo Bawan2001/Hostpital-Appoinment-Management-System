@@ -35,6 +35,13 @@ public class DoctorController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/email/{email}")
+    @Operation(summary = "Get doctor profile by Email")
+    public ResponseEntity<DoctorResponse> getDoctorByEmail(@PathVariable String email) {
+        DoctorResponse response = doctorService.getDoctorByEmail(email);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     @Operation(summary = "Get all doctors")
     public ResponseEntity<List<DoctorResponse>> getAllDoctors() {

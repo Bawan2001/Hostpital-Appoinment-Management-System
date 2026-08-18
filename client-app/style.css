@@ -298,8 +298,53 @@ body {
 }
 .btn-login  { background: var(--primary); color: #fff; }
 .btn-login:hover  { background: var(--primary-dark); }
+.btn-register { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.btn-register:hover { background: var(--primary-light); }
 .btn-logout { background: var(--gray-100); color: var(--gray-700); }
 .btn-logout:hover { background: var(--danger-light); color: var(--danger); }
+
+/* ── Role Toggle Pills (Register) ────────────────────────────── */
+.role-toggle-group {
+  display: flex;
+  gap: 6px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.role-toggle {
+  flex: 1;
+  padding: 8px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: center;
+}
+.role-toggle:hover { background: rgba(255,255,255,0.6); color: var(--gray-700); }
+.role-toggle.active {
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Modal Switch Link ───────────────────────────────────────── */
+.modal-switch-link {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-right: auto;
+  align-self: center;
+}
+.modal-switch-link a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.modal-switch-link a:hover { text-decoration: underline; }
 
 /* ── Pages ──────────────────────────────────────────────────── */
 .main-area > div:last-child,
@@ -1002,3 +1047,46 @@ tbody tr:hover { background: var(--gray-50); }
 .avatar-admin   { background: #dc2626 !important; }
 .avatar-doctor  { background: #0284c7 !important; }
 .avatar-patient { background: #16a34a !important; }
+
+/* ── Table Action Buttons ────────────────────────────────────── */
+.btn-table-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.btn-table-action:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.btn-table-complete {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+}
+.btn-table-complete:hover {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.btn-table-cancel {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.btn-table-cancel:hover {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+

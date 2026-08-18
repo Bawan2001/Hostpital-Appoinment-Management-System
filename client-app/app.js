@@ -291,18 +291,20 @@ async function login() {
         // Extract role from JWT payload
         const role = extractRoleFromToken(authToken);
 
-        currentUser = data.user || { name: email.split('@')[0], email };
-        // Attach role to currentUser
-        if (role) currentUser.role = role;
-        // Fallback: check if role was provided in the response body
-        if (!currentUser.role && (data.role || data.userRole)) {
-            currentUser.role = (data.role || data.userRole).replace(/^ROLE_/, '').toUpperCase();
-        }
+        currentUser = {
+            id: data.id,
+            name: data.name || email.split('@')[0],
+            email: data.email || email,
+            role: role || (data.role ? data.role.replace(/^ROLE_/, '').toUpperCase() : null),
+        };
+
+        // Fetch linked Patient or Doctor entity by email for ID linking
+        await fetchLinkedEntity();
 
         updateUserUI();
         applyRolePermissions();
         closeModal('loginModal');
-        showToast(`Logged in as ${ROLE_CONFIG[currentUser.role]?.label || 'User'} ✓`, 'success');
+        showToast(`Welcome, ${currentUser.name}! Signed in as ${ROLE_CONFIG[currentUser.role]?.label || 'User'} ✓`, 'success');
         if (authToken) document.getElementById('tokenDisplay').value = authToken;
         refreshDashboard();
     } catch (e) {
@@ -310,19 +312,80 @@ async function login() {
     }
 }
 
+async function fetchLinkedEntity() {
+    if (!currentUser || !currentUser.email) return;
+    try {
+        if (currentUser.role === 'PATIENT') {
+            const patient = await apiRequest('GET', `${API_BASE}/patients/email/${encodeURIComponent(currentUser.email)}`);
+            if (patient && patient.id) {
+                currentUser.patientId = patient.id;
+                currentUser.patientName = patient.name;
+            }
+        } else if (currentUser.role === 'DOCTOR') {
+            const doctor = await apiRequest('GET', `${API_BASE}/doctors/email/${encodeURIComponent(currentUser.email)}`);
+            if (doctor && doctor.id) {
+                currentUser.doctorId = doctor.id;
+                currentUser.doctorName = doctor.name;
+            }
+        }
+    } catch (e) {
+        // Profile may not exist yet — not a blocking error
+    }
+}
+
+// Switch between Login and Register modals
+function switchModal(closeId, openId) {
+    closeModal(closeId);
+    setTimeout(() => openModal(openId), 150);
+    return false;
+}
+
+// Role toggle handler in Register modal
+function selectRegisterRole(role) {
+    document.getElementById('regRole').value = role;
+    ['Patient', 'Doctor', 'Admin'].forEach(r => {
+        const btn = document.getElementById(`roleToggle${r}`);
+        if (btn) btn.classList.toggle('active', r.toUpperCase() === role);
+    });
+    const pf = document.getElementById('patientFields');
+    const df = document.getElementById('doctorFields');
+    if (pf) pf.style.display = (role === 'PATIENT') ? '' : 'none';
+    if (df) df.style.display = (role === 'DOCTOR') ? '' : 'none';
+}
+
 async function register() {
+    const role = document.getElementById('regRole').value;
     const body = {
         name:     document.getElementById('regName').value.trim(),
         email:    document.getElementById('regEmail').value.trim(),
         password: document.getElementById('regPassword').value,
-        role:     document.getElementById('regRole').value,
-        phone:    document.getElementById('regPhone').value.trim(),
+        phone:    document.getElementById('regPhone').value.trim() || '+94771234567',
+        role:     role,
     };
     if (!body.name || !body.email || !body.password) { showToast('Please fill in required fields', 'error'); return; }
+    if (body.password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+
+    if (role === 'PATIENT') {
+        body.age        = parseInt(document.getElementById('regAge').value) || 30;
+        body.gender     = document.getElementById('regGender').value || 'OTHER';
+        body.bloodGroup = document.getElementById('regBloodGroup').value || 'O_POSITIVE';
+        body.address    = document.getElementById('regAddress').value.trim() || 'Colombo, Sri Lanka';
+    } else if (role === 'DOCTOR') {
+        body.specialty       = document.getElementById('regSpecialty').value.trim() || 'General Medicine';
+        body.experienceYears = parseInt(document.getElementById('regExpYears').value) || 5;
+        body.consultationFee = parseFloat(document.getElementById('regFee').value) || 3000;
+        body.hospitalName    = document.getElementById('regHospital').value.trim() || 'National Hospital Colombo';
+        body.availableDays   = ['Monday', 'Wednesday', 'Friday'];
+    }
+
     try {
-        await apiRequest('POST', `${API_BASE}/auth/register`, body);
+        const data = await apiRequest('POST', `${API_BASE}/auth/register`, body);
         closeModal('registerModal');
-        showToast('Account created! Please login.', 'success');
+        showToast(`Account created! Welcome, ${body.name}. Please sign in.`, 'success');
+        // Pre-fill login modal with new email
+        document.getElementById('loginEmail').value = body.email;
+        document.getElementById('loginPassword').value = body.password;
+        setTimeout(() => openModal('loginModal'), 400);
     } catch (e) {
         showToast(e.message, 'error');
     }
@@ -331,7 +394,7 @@ async function register() {
 async function validateToken() {
     if (!authToken) { showToast('No active token. Please login first.', 'error'); return; }
     try {
-        const data = await apiRequest('GET', `${API_BASE}/auth/validate`);
+        const data = await apiRequest('GET', `${API_BASE}/auth/validate?token=${authToken}`);
         document.getElementById('authResult').textContent = JSON.stringify(data, null, 2);
         showToast('Token is valid ✓', 'success');
     } catch (e) {
@@ -379,10 +442,11 @@ function logout() {
 }
 
 function updateUserUI() {
-    const loginBtn  = document.getElementById('topLoginBtn');
-    const logoutBtn = document.getElementById('topLogoutBtn');
-    const chip      = document.getElementById('userChipName');
-    const avatar    = document.getElementById('userAvatar');
+    const loginBtn    = document.getElementById('topLoginBtn');
+    const registerBtn = document.getElementById('topRegisterBtn');
+    const logoutBtn   = document.getElementById('topLogoutBtn');
+    const chip        = document.getElementById('userChipName');
+    const avatar      = document.getElementById('userAvatar');
 
     // Clear any previous role color class
     if (avatar) {
@@ -390,8 +454,9 @@ function updateUserUI() {
     }
 
     if (authToken) {
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
+        if (loginBtn)    loginBtn.classList.add('hidden');
+        if (registerBtn) registerBtn.classList.add('hidden');
+        if (logoutBtn)   logoutBtn.classList.remove('hidden');
         const name = currentUser?.name || currentUser?.email || 'User';
         chip.textContent = name;
         avatar.textContent = name.charAt(0).toUpperCase();
@@ -401,12 +466,14 @@ function updateUserUI() {
             avatar.classList.add(ROLE_CONFIG[role].avatarClass);
         }
     } else {
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
+        if (loginBtn)    loginBtn.classList.remove('hidden');
+        if (registerBtn) registerBtn.classList.remove('hidden');
+        if (logoutBtn)   logoutBtn.classList.add('hidden');
         chip.textContent = 'Not logged in';
         avatar.textContent = '?';
     }
 }
+
 
 
 // ── Dashboard ─────────────────────────────────────────────────
@@ -541,6 +608,9 @@ async function loadAllDoctors() {
             { key: 'consultationFee', label: 'Fee (LKR)', render: r => `Rs. ${(r.consultationFee||0).toLocaleString()}` },
             { key: 'isAvailable',     label: 'Status', render: r => statusBadge(r.isAvailable ? 'ACTIVE' : 'INACTIVE') },
             { key: 'hospitalName',    label: 'Hospital' },
+            { key: 'action',          label: 'Action', render: r => `
+                <button class="btn-table-action" onclick="openBookForDoctor('${r.id}', '${(r.name||'').replace(/'/g, "\\'")}', ${r.consultationFee || 3000})">📅 Book</button>
+            `},
         ], list, 'No doctors found. Add some!');
         document.getElementById('doctorsBadge').textContent = list.length;
         document.getElementById('statDoctors').textContent = list.length;
@@ -548,6 +618,24 @@ async function loadAllDoctors() {
         el.innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
         showToast(e.message, 'error');
     }
+}
+
+function openBookForDoctor(doctorId, doctorName, fee) {
+    const docIdEl = document.getElementById('apptDoctorId');
+    const docNameEl = document.getElementById('apptDoctorName');
+    const feeEl = document.getElementById('apptFee');
+    if (docIdEl) docIdEl.value = doctorId || '';
+    if (docNameEl) docNameEl.value = doctorName || '';
+    if (feeEl) feeEl.value = fee || 3000;
+
+    if (currentUser && currentUser.role === 'PATIENT') {
+        const pId = document.getElementById('apptPatientId');
+        const pName = document.getElementById('apptPatientName');
+        if (pId && (currentUser.patientId || currentUser.id)) pId.value = currentUser.patientId || currentUser.id;
+        if (pName && (currentUser.patientName || currentUser.name)) pName.value = currentUser.patientName || currentUser.name;
+    }
+
+    openModal('bookAppointmentModal');
 }
 
 async function filterDoctorsBySpecialty() {
@@ -564,6 +652,9 @@ async function filterDoctorsBySpecialty() {
             { key: 'experienceYears', label: 'Exp (Yrs)' },
             { key: 'consultationFee', label: 'Fee (LKR)', render: r => `Rs. ${(r.consultationFee||0).toLocaleString()}` },
             { key: 'isAvailable',     label: 'Status', render: r => statusBadge(r.isAvailable ? 'ACTIVE' : 'INACTIVE') },
+            { key: 'action',          label: 'Action', render: r => `
+                <button class="btn-table-action" onclick="openBookForDoctor('${r.id}', '${(r.name||'').replace(/'/g, "\\'")}', ${r.consultationFee || 3000})">📅 Book</button>
+            `},
         ], list, `No ${specialty || ''} doctors found`);
     } catch (e) {
         showToast(e.message, 'error');
@@ -598,7 +689,11 @@ async function loadAllAppointments() {
     el.innerHTML = '<div class="empty-state"><p>Loading...</p></div>';
     try {
         const data = await apiRequest('GET', `${API_BASE}/appointments`);
-        const list = Array.isArray(data) ? data : (data.content || []);
+        let list = Array.isArray(data) ? data : (data.content || []);
+
+        const isPatient = currentUser?.role === 'PATIENT';
+        const isDoctor  = currentUser?.role === 'DOCTOR';
+
         el.innerHTML = buildTable([
             { key: 'patientName',     label: 'Patient' },
             { key: 'doctorName',      label: 'Doctor' },
@@ -607,11 +702,43 @@ async function loadAllAppointments() {
             { key: 'fee',             label: 'Fee (LKR)', render: r => `Rs. ${(r.fee||0).toLocaleString()}` },
             { key: 'status',          label: 'Status', render: r => statusBadge(r.status) },
             { key: 'notes',           label: 'Notes' },
+            { key: 'action',          label: 'Actions', render: r => {
+                const st = (r.status || '').toUpperCase();
+                let btns = '';
+                if (st === 'SCHEDULED' || st === 'BOOKED' || st === 'PENDING') {
+                    if (isDoctor || currentUser?.role === 'ADMIN') {
+                        btns += `<button class="btn-table-action btn-table-complete" onclick="updateAppointmentStatus('${r.id}', 'COMPLETED')">✓ Complete</button> `;
+                    }
+                    btns += `<button class="btn-table-action btn-table-cancel" onclick="cancelAppointmentRecord('${r.id}')">✕ Cancel</button>`;
+                }
+                return btns || '<span class="text-muted">—</span>';
+            }},
         ], list, 'No appointments found');
         document.getElementById('appointmentsBadge').textContent = list.length;
         document.getElementById('statAppointments').textContent = list.length;
     } catch (e) {
         el.innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
+        showToast(e.message, 'error');
+    }
+}
+
+async function updateAppointmentStatus(id, newStatus) {
+    try {
+        await apiRequest('PUT', `${API_BASE}/appointments/${id}/status`, { status: newStatus });
+        showToast(`Appointment status updated to ${newStatus}!`, 'success');
+        loadAllAppointments();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function cancelAppointmentRecord(id) {
+    if (!confirm('Are you sure you want to cancel this appointment?')) return;
+    try {
+        await apiRequest('PUT', `${API_BASE}/appointments/${id}/cancel`);
+        showToast('Appointment cancelled successfully.', 'info');
+        loadAllAppointments();
+    } catch (e) {
         showToast(e.message, 'error');
     }
 }

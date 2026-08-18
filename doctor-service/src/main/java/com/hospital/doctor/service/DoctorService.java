@@ -8,6 +8,7 @@ import java.util.List;
 public interface DoctorService {
     DoctorResponse createDoctor(DoctorRequest request);
     DoctorResponse getDoctorById(String id);
+    DoctorResponse getDoctorByEmail(String email);
     List<DoctorResponse> getAllDoctors();
     List<DoctorResponse> getDoctorsBySpecialty(String specialty);
     DoctorResponse updateAvailability(String id, Boolean isAvailable);

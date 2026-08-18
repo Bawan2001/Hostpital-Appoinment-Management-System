@@ -58,6 +58,13 @@ public class PatientController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/email/{email}")
+    @Operation(summary = "Get patient by Email")
+    public ResponseEntity<PatientResponse> getPatientByEmail(@PathVariable String email) {
+        PatientResponse response = patientService.getPatientByEmail(email);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     @Operation(summary = "Get all patients (Admin only)")
     public ResponseEntity<List<PatientResponse>> getAllPatients() {

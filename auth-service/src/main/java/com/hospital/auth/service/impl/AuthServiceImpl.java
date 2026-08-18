@@ -12,16 +12,38 @@ import com.hospital.auth.repository.UserRepository;
 import com.hospital.auth.security.JwtTokenProvider;
 import com.hospital.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RestTemplate restTemplate;
+
+    @Value("${app.patient-service-url:http://patient-service:8082}")
+    private String patientServiceUrl;
+
+    @Value("${app.doctor-service-url:http://doctor-service:8083}")
+    private String doctorServiceUrl;
+
+    @Value("${app.api-key:hospital-internal-secret-key-2026}")
+    private String apiKey;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -43,6 +65,13 @@ public class AuthServiceImpl implements AuthService {
         User savedUser = userRepository.save(user);
         String token = jwtTokenProvider.generateToken(savedUser);
 
+        // Provision profile in corresponding microservice
+        if (savedUser.getRole() == com.hospital.auth.entity.Role.PATIENT) {
+            provisionPatientProfile(savedUser, request);
+        } else if (savedUser.getRole() == com.hospital.auth.entity.Role.DOCTOR) {
+            provisionDoctorProfile(savedUser, request);
+        }
+
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
@@ -52,6 +81,57 @@ public class AuthServiceImpl implements AuthService {
                 .email(savedUser.getEmail())
                 .role(savedUser.getRole())
                 .build();
+    }
+
+    private void provisionPatientProfile(User user, RegisterRequest request) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-API-KEY", apiKey);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("userId", user.getId());
+            body.put("name", user.getName());
+            body.put("email", user.getEmail());
+            body.put("age", request.getAge() != null ? request.getAge() : 30);
+            body.put("gender", request.getGender() != null ? request.getGender() : "OTHER");
+            body.put("bloodGroup", request.getBloodGroup() != null ? request.getBloodGroup() : "O_POSITIVE");
+            body.put("address", request.getAddress() != null ? request.getAddress() : "Colombo, Sri Lanka");
+            body.put("medicalHistory", List.of());
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            String url = patientServiceUrl + "/api/v1/patients";
+            restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+            log.info("Provisioned patient profile for email: {}", user.getEmail());
+        } catch (Exception e) {
+            log.warn("Could not auto-provision patient profile in patient-service: {}", e.getMessage());
+        }
+    }
+
+    private void provisionDoctorProfile(User user, RegisterRequest request) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-API-KEY", apiKey);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("name", user.getName());
+            body.put("email", user.getEmail());
+            body.put("phone", user.getPhone());
+            body.put("specialty", request.getSpecialty() != null && !request.getSpecialty().isBlank() ? request.getSpecialty() : "General Medicine");
+            body.put("experienceYears", request.getExperienceYears() != null ? request.getExperienceYears() : 5);
+            body.put("consultationFee", request.getConsultationFee() != null ? request.getConsultationFee() : 3000.0);
+            body.put("hospitalName", request.getHospitalName() != null && !request.getHospitalName().isBlank() ? request.getHospitalName() : "National Hospital Colombo");
+            body.put("availableDays", request.getAvailableDays() != null && !request.getAvailableDays().isEmpty() ? request.getAvailableDays() : List.of("Monday", "Wednesday", "Friday"));
+            body.put("isAvailable", true);
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            String url = doctorServiceUrl + "/api/v1/doctors";
+            restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+            log.info("Provisioned doctor profile for email: {}", user.getEmail());
+        } catch (Exception e) {
+            log.warn("Could not auto-provision doctor profile in doctor-service: {}", e.getMessage());
+        }
     }
 
     @Override

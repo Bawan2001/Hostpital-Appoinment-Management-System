@@ -36,12 +36,12 @@
             </button>
 
             <div class="nav-section-label">Microservices</div>
-            <button class="nav-item" id="nav-patients" data-roles="ADMIN" onclick="navigateTo('patients')">
+            <button class="nav-item" id="nav-patients" data-roles="ADMIN,DOCTOR" onclick="navigateTo('patients')">
                 <svg class="nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Patients
                 <span class="nav-badge" id="patientsBadge">—</span>
             </button>
-            <button class="nav-item" id="nav-doctors" data-roles="ADMIN" onclick="navigateTo('doctors')">
+            <button class="nav-item" id="nav-doctors" data-roles="ADMIN,DOCTOR,PATIENT" onclick="navigateTo('doctors')">
                 <svg class="nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="14" x2="12" y2="20"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
                 Doctors
                 <span class="nav-badge" id="doctorsBadge">—</span>
@@ -90,7 +90,8 @@
                     <div class="user-avatar" id="userAvatar">?</div>
                     <span id="userChipName">Not logged in</span>
                 </div>
-                <button class="btn-topbar btn-login" id="topLoginBtn" onclick="openModal('loginModal')">Login</button>
+                <button class="btn-topbar btn-login" id="topLoginBtn" onclick="openModal('loginModal')">Sign In</button>
+                <button class="btn-topbar btn-register" id="topRegisterBtn" onclick="openModal('registerModal')">Register</button>
                 <button class="btn-topbar btn-logout hidden" id="topLogoutBtn" onclick="logout()">Logout</button>
             </div>
         </header>
@@ -413,20 +414,21 @@
 <div id="loginModal" class="modal-overlay" onclick="handleOverlayClick(event,'loginModal')">
     <div class="modal-box">
         <div class="modal-hdr">
-            <h3>Sign In</h3>
+            <h3>🔐 Sign In</h3>
             <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
         </div>
         <div class="modal-body">
             <div class="form-field">
                 <label>Email Address</label>
-                <input type="email" id="loginEmail" value="admin@hospital.com" placeholder="admin@hospital.com">
+                <input type="email" id="loginEmail" placeholder="Enter your email">
             </div>
             <div class="form-field">
                 <label>Password</label>
-                <input type="password" id="loginPassword" value="admin123" placeholder="••••••••">
+                <input type="password" id="loginPassword" placeholder="••••••••">
             </div>
         </div>
         <div class="modal-ftr">
+            <span class="modal-switch-link">No account? <a href="#" onclick="switchModal('loginModal','registerModal')">Register here</a></span>
             <button class="btn-ghost" onclick="closeModal('loginModal')">Cancel</button>
             <button class="btn-primary" onclick="login()">Sign In</button>
         </div>
@@ -437,40 +439,103 @@
 <div id="registerModal" class="modal-overlay" onclick="handleOverlayClick(event,'registerModal')">
     <div class="modal-box">
         <div class="modal-hdr">
-            <h3>Create Account</h3>
+            <h3>📝 Create Account</h3>
             <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
         </div>
         <div class="modal-body">
-            <div class="form-field">
-                <label>Full Name</label>
-                <input type="text" id="regName" placeholder="John Doe">
+            <!-- Role Selector -->
+            <div class="role-toggle-group">
+                <button class="role-toggle active" id="roleTogglePatient" onclick="selectRegisterRole('PATIENT')">🏥 Patient</button>
+                <button class="role-toggle" id="roleToggleDoctor" onclick="selectRegisterRole('DOCTOR')">🩺 Doctor</button>
+                <button class="role-toggle" id="roleToggleAdmin" onclick="selectRegisterRole('ADMIN')">🛡️ Admin</button>
             </div>
-            <div class="form-field">
-                <label>Email Address</label>
-                <input type="email" id="regEmail" placeholder="john@example.com">
-            </div>
-            <div class="form-field">
-                <label>Password</label>
-                <input type="password" id="regPassword" placeholder="Minimum 6 characters">
-            </div>
+            <input type="hidden" id="regRole" value="PATIENT">
+
+            <!-- Common Fields -->
             <div class="form-row-2">
                 <div class="form-field">
-                    <label>Role</label>
-                    <select id="regRole">
-                        <option value="PATIENT">Patient</option>
-                        <option value="DOCTOR">Doctor</option>
-                        <option value="ADMIN">Admin</option>
-                    </select>
+                    <label>Full Name</label>
+                    <input type="text" id="regName" placeholder="e.g. Kamal Perera">
                 </div>
                 <div class="form-field">
                     <label>Phone</label>
                     <input type="text" id="regPhone" placeholder="+94771234567">
                 </div>
             </div>
+            <div class="form-field">
+                <label>Email Address</label>
+                <input type="email" id="regEmail" placeholder="you@example.com">
+            </div>
+            <div class="form-field">
+                <label>Password</label>
+                <input type="password" id="regPassword" placeholder="Minimum 6 characters">
+            </div>
+
+            <!-- Patient-specific fields -->
+            <div id="patientFields">
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Age</label>
+                        <input type="number" id="regAge" placeholder="28" min="1" max="120">
+                    </div>
+                    <div class="form-field">
+                        <label>Gender</label>
+                        <select id="regGender">
+                            <option value="MALE">Male</option>
+                            <option value="FEMALE">Female</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Blood Group</label>
+                        <select id="regBloodGroup">
+                            <option value="A_POSITIVE">A+</option>
+                            <option value="A_NEGATIVE">A-</option>
+                            <option value="B_POSITIVE">B+</option>
+                            <option value="B_NEGATIVE">B-</option>
+                            <option value="O_POSITIVE">O+</option>
+                            <option value="O_NEGATIVE">O-</option>
+                            <option value="AB_POSITIVE">AB+</option>
+                            <option value="AB_NEGATIVE">AB-</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Address</label>
+                        <input type="text" id="regAddress" placeholder="Colombo, Sri Lanka">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctor-specific fields -->
+            <div id="doctorFields" style="display:none;">
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Specialty</label>
+                        <input type="text" id="regSpecialty" placeholder="e.g. Cardiology">
+                    </div>
+                    <div class="form-field">
+                        <label>Experience (Years)</label>
+                        <input type="number" id="regExpYears" placeholder="10" min="0">
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Consultation Fee (LKR)</label>
+                        <input type="number" id="regFee" placeholder="3000" min="0">
+                    </div>
+                    <div class="form-field">
+                        <label>Hospital Name</label>
+                        <input type="text" id="regHospital" placeholder="National Hospital Colombo">
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="modal-ftr">
+            <span class="modal-switch-link">Have account? <a href="#" onclick="switchModal('registerModal','loginModal')">Sign in</a></span>
             <button class="btn-ghost" onclick="closeModal('registerModal')">Cancel</button>
-            <button class="btn-primary" onclick="register()">Register</button>
+            <button class="btn-primary" onclick="register()">Create Account</button>
         </div>
     </div>
 </div>

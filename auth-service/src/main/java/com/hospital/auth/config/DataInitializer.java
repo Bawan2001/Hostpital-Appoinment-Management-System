@@ -40,6 +40,14 @@ public class DataInitializer implements CommandLineRunner {
                     .phone("+94771234567")
                     .build();
 
+            User doctor2 = User.builder()
+                    .name("Dr. Samantha Perera")
+                    .email("samantha.perera@hospital.com")
+                    .password(passwordEncoder.encode("doctor123"))
+                    .role(Role.DOCTOR)
+                    .phone("+94771234567")
+                    .build();
+
             User patient = User.builder()
                     .name("Alice Johnson")
                     .email("patient@hospital.com")
@@ -48,8 +56,16 @@ public class DataInitializer implements CommandLineRunner {
                     .phone("+94711112233")
                     .build();
 
-            userRepository.saveAll(List.of(admin, doctor, patient));
-            log.info("Initial Auth Service data seeded successfully. 3 users created.");
+            User patient2 = User.builder()
+                    .name("Alice Johnson")
+                    .email("alice.johnson@gmail.com")
+                    .password(passwordEncoder.encode("patient123"))
+                    .role(Role.PATIENT)
+                    .phone("+94711112233")
+                    .build();
+
+            userRepository.saveAll(List.of(admin, doctor, doctor2, patient, patient2));
+            log.info("Initial Auth Service data seeded successfully. 5 users created.");
         } else {
             log.info("Auth user data already exists. Skipping seed.");
         }
